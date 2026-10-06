@@ -34,7 +34,6 @@ jobs:
           sha="$(sha256sum "$archive" | awk '{print $1}')"
 
           sed -i -E "s#^  url \".*\"#  url \"$url\"#" Formula/applebookscli.rb
-          sed -i -E "s#^  version \".*\"#  version \"$version\"#" Formula/applebookscli.rb
           sed -i -E "s#^  sha256 \".*\"#  sha256 \"$sha\"#" Formula/applebookscli.rb
 
           git add Formula/applebookscli.rb
