@@ -32,9 +32,24 @@ jobs:
           archive="$(mktemp)"
           curl -LfsS "$url" -o "$archive"
           sha="$(sha256sum "$archive" | awk '{print $1}')"
+          cpu="$(tar -xOzf "$archive" package/package.json | jq -r '.cpu | sort | join(",")')"
 
           sed -i -E "s#^  url \".*\"#  url \"$url\"#" Formula/applebookscli.rb
           sed -i -E "s#^  sha256 \".*\"#  sha256 \"$sha\"#" Formula/applebookscli.rb
+
+          case "$cpu" in
+            arm64)
+              grep -q '^  depends_on arch: :arm64$' Formula/applebookscli.rb || \
+                sed -i '/^  depends_on macos:/i\  depends_on arch: :arm64' Formula/applebookscli.rb
+              ;;
+            arm64,x64)
+              sed -i '/^  depends_on arch: :arm64$/d' Formula/applebookscli.rb
+              ;;
+            *)
+              echo "unexpected release cpu set: $cpu" >&2
+              exit 1
+              ;;
+          esac
 
           git add Formula/applebookscli.rb
           git diff --cached --quiet && exit 0
