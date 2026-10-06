@@ -1,0 +1,41 @@
+name: Update Roamer
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Update formula
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="$(curl -fsSL https://api.github.com/repos/chiimagnus/Roamer/releases/latest | jq -r .tag_name)"
+          test -n "$tag"
+          test "$tag" != "null"
+
+          url="https://github.com/chiimagnus/Roamer/archive/refs/tags/$tag.tar.gz"
+          archive="$(mktemp)"
+          curl -LfsS "$url" -o "$archive"
+          sha="$(sha256sum "$archive" | awk '{print $1}')"
+
+          sed -i -E "s#^  url \".*\"#  url \"$url\"#" Formula/roamer.rb
+          sed -i -E "s#^  sha256 \".*\"#  sha256 \"$sha\"#" Formula/roamer.rb
+
+          git add Formula/roamer.rb
+          git diff --cached --quiet && exit 0
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update roamer to $tag"
+          git push
