@@ -20,9 +20,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          tag="$(curl -fsSL https://api.github.com/repos/chiimagnus/Roamer/releases/latest | jq -r .tag_name)"
+          latest_url="$(curl -LfsS -o /dev/null -w '%{url_effective}' https://github.com/chiimagnus/Roamer/releases/latest)"
+          tag="${latest_url##*/}"
           test -n "$tag"
-          test "$tag" != "null"
+          case "$tag" in
+            v*) ;;
+            *) echo "unexpected release tag: $tag" >&2; exit 1 ;;
+          esac
 
           url="https://github.com/chiimagnus/Roamer/archive/refs/tags/$tag.tar.gz"
           archive="$(mktemp)"
