@@ -10,7 +10,7 @@ class Roamer < Formula
   depends_on xcode: "27.0"
 
   def install
-    system "swift", "build", "-c", "release"
+    system "swift", "build", "-c", "release", "--disable-sandbox"
     bin.install ".build/release/roamer"
   end
 
