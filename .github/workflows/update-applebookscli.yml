@@ -1,0 +1,46 @@
+name: Update AppleBooksCLI
+
+on:
+  schedule:
+    - cron: "29 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Update formula
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          latest_url="$(curl -LfsS -o /dev/null -w '%{url_effective}' https://github.com/chiimagnus/AppleBooksCLI/releases/latest)"
+          tag="${latest_url##*/}"
+          case "$tag" in
+            v*) ;;
+            *) echo "unexpected release tag: $tag" >&2; exit 1 ;;
+          esac
+          version="${tag#v}"
+
+          url="https://github.com/chiimagnus/AppleBooksCLI/releases/download/$tag/chiimagnus-applebookscli-$version.tgz"
+          archive="$(mktemp)"
+          curl -LfsS "$url" -o "$archive"
+          sha="$(sha256sum "$archive" | awk '{print $1}')"
+
+          sed -i -E "s#^  url \".*\"#  url \"$url\"#" Formula/applebookscli.rb
+          sed -i -E "s#^  version \".*\"#  version \"$version\"#" Formula/applebookscli.rb
+          sed -i -E "s#^  sha256 \".*\"#  sha256 \"$sha\"#" Formula/applebookscli.rb
+
+          git add Formula/applebookscli.rb
+          git diff --cached --quiet && exit 0
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update applebookscli to $tag"
+          git push
