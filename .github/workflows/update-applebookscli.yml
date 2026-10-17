@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Update formula
         shell: bash
@@ -37,19 +37,10 @@ jobs:
           sed -i -E "s#^  url \".*\"#  url \"$url\"#" Formula/applebookscli.rb
           sed -i -E "s#^  sha256 \".*\"#  sha256 \"$sha\"#" Formula/applebookscli.rb
 
-          case "$cpu" in
-            arm64)
-              grep -q '^  depends_on arch: :arm64$' Formula/applebookscli.rb || \
-                sed -i '/^  depends_on macos:/i\  depends_on arch: :arm64' Formula/applebookscli.rb
-              ;;
-            arm64,x64)
-              sed -i '/^  depends_on arch: :arm64$/d' Formula/applebookscli.rb
-              ;;
-            *)
-              echo "unexpected release cpu set: $cpu" >&2
-              exit 1
-              ;;
-          esac
+          test "$cpu" = arm64 || {
+            echo "unexpected release architecture: $cpu" >&2
+            exit 1
+          }
 
           git add Formula/applebookscli.rb
           git diff --cached --quiet && exit 0
