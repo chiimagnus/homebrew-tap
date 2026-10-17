@@ -1,0 +1,54 @@
+name: Update AppleMapsCLI
+
+on:
+  schedule:
+    - cron: "41 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-applemapscli
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout tap
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Update verified stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(gh api repos/chiimagnus/AppleMapsCLI/releases/latest --jq '.tag_name')"
+          [[ "$tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+            echo "Unexpected stable release tag: $tag" >&2
+            exit 1
+          }
+
+          archive="$(mktemp)"
+          trap 'rm -f "$archive"' EXIT
+          gh release download "$tag" --repo chiimagnus/AppleMapsCLI \
+            --pattern applemaps-macos-arm64.tar.gz --output "$archive"
+          test "$(tar -tzf "$archive")" = "applemaps"
+          sha="$(sha256sum "$archive" | awk '{print $1}')"
+          url="https://github.com/chiimagnus/AppleMapsCLI/releases/download/$tag/applemaps-macos-arm64.tar.gz"
+
+          sed -i -E "s#^  url \".*\"#  url \"$url\"#" Formula/applemapscli.rb
+          sed -i -E "s#^  sha256 \".*\"#  sha256 \"$sha\"#" Formula/applemapscli.rb
+          grep -Fxq "  url \"$url\"" Formula/applemapscli.rb
+          grep -Fxq "  sha256 \"$sha\"" Formula/applemapscli.rb
+
+          git add Formula/applemapscli.rb
+          git diff --cached --quiet && exit 0
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update AppleMapsCLI to $tag"
+          git push
