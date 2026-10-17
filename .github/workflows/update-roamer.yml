@@ -8,38 +8,46 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: update-roamer
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout tap
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Update formula
+      - name: Update verified stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-
-          latest_url="$(curl -LfsS -o /dev/null -w '%{url_effective}' https://github.com/chiimagnus/Roamer/releases/latest)"
-          tag="${latest_url##*/}"
-          test -n "$tag"
-          case "$tag" in
-            v*) ;;
-            *) echo "unexpected release tag: $tag" >&2; exit 1 ;;
-          esac
-
-          url="https://github.com/chiimagnus/Roamer/archive/refs/tags/$tag.tar.gz"
+          tag="$(gh api repos/chiimagnus/Roamer/releases/latest --jq '.tag_name')"
+          [[ "$tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+            echo "Unexpected stable version: $tag" >&2
+            exit 1
+          }
           archive="$(mktemp)"
-          curl -LfsS "$url" -o "$archive"
+          trap 'rm -f "$archive"' EXIT
+          gh release download "$tag" --repo chiimagnus/Roamer \
+            --pattern roamer-macos-arm64.tar.gz --output "$archive"
+          test "$(tar -tzf "$archive" | sort | tr '\n' ' ')" = "LICENSE roamer "
           sha="$(sha256sum "$archive" | awk '{print $1}')"
+          url="https://github.com/chiimagnus/Roamer/releases/download/$tag/roamer-macos-arm64.tar.gz"
 
           sed -i -E "s#^  url \".*\"#  url \"$url\"#" Formula/roamer.rb
           sed -i -E "s#^  sha256 \".*\"#  sha256 \"$sha\"#" Formula/roamer.rb
+          grep -Fxq "  url \"$url\"" Formula/roamer.rb
+          grep -Fxq "  sha256 \"$sha\"" Formula/roamer.rb
 
           git add Formula/roamer.rb
           git diff --cached --quiet && exit 0
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Update roamer to $tag"
+          git commit -m "Update Roamer to $tag"
           git push

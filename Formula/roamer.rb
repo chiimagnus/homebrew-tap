@@ -1,8 +1,8 @@
 class Roamer < Formula
   desc "CLI automation for Apple Vision Pro Simulator"
   homepage "https://github.com/chiimagnus/Roamer"
-  url "https://github.com/chiimagnus/Roamer/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "219edbaea3fb72f82226108d2160bdccfb1e8b4e790b488b14c7ca9fa9b44228"
+  url "https://github.com/chiimagnus/Roamer/releases/download/v0.1.1/roamer-macos-arm64.tar.gz"
+  sha256 "06d36b9577b09e1b5ea426b5f87571931d1dda04bb72c6f754594633ec3c775e"
   license "AGPL-3.0-only"
 
   depends_on arch: :arm64
@@ -10,8 +10,9 @@ class Roamer < Formula
   depends_on xcode: "27.0"
 
   def install
-    system "swift", "build", "-c", "release", "--disable-sandbox"
-    bin.install ".build/release/roamer"
+    odie "Roamer requires macOS 26.6 or later" if MacOS.full_version < MacOSVersion.new("26.6")
+    bin.install "roamer"
+    prefix.install "LICENSE"
   end
 
   test do
