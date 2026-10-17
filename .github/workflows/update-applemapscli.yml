@@ -35,7 +35,7 @@ jobs:
           archive="$(mktemp)"
           trap 'rm -f "$archive"' EXIT
           gh release download "$tag" --repo chiimagnus/AppleMapsCLI \
-            --pattern applemaps-macos-arm64.tar.gz --output "$archive"
+            --pattern applemaps-macos-arm64.tar.gz --clobber --output "$archive"
           test "$(tar -tzf "$archive")" = "applemaps"
           sha="$(sha256sum "$archive" | awk '{print $1}')"
           url="https://github.com/chiimagnus/AppleMapsCLI/releases/download/$tag/applemaps-macos-arm64.tar.gz"
