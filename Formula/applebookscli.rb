@@ -1,8 +1,8 @@
 class Applebookscli < Formula
   desc "Native CLI for querying and safely updating Apple Books data"
   homepage "https://github.com/chiimagnus/AppleBooksCLI"
-  url "https://github.com/chiimagnus/AppleBooksCLI/releases/download/v0.4.2/chiimagnus-applebookscli-0.4.2.tgz"
-  sha256 "d3d71bbe48c35e6d8009411ba9aa3c355ad28a677971da7418b002fe8fdaba41"
+  url "https://github.com/chiimagnus/AppleBooksCLI/releases/download/v0.5.0/chiimagnus-applebookscli-0.5.0.tgz"
+  sha256 "38b00b83151c50eea3e76babf231ab417b19b0111f9bacfd05acde19bee3dde1"
   license "AGPL-3.0-only"
 
   depends_on arch: :arm64
