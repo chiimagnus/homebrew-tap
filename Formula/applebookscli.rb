@@ -11,11 +11,9 @@ class Applebookscli < Formula
   def install
     odie "AppleBooksCLI requires macOS 15.6 or later" if MacOS.full_version < MacOSVersion.new("15.6")
     bin.install "bin/applebookscli"
-    (libexec/"applebookscli").install "libexec/applebookscli/applebookscli-pdf-worker"
   end
 
   test do
     assert_equal version.to_s, shell_output("#{bin}/applebookscli --version").strip
-    assert_predicate libexec/"applebookscli/applebookscli-pdf-worker", :executable?
   end
 end
